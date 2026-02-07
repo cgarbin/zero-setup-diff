@@ -63,6 +63,10 @@
       min-height: 0;
     }
 
+    .input-area.hidden {
+      display: none;
+    }
+
     .input-group {
       display: flex;
       flex-direction: column;
@@ -154,6 +158,17 @@
       background: #d0d0d0;
     }
 
+    .diff-section {
+      flex: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .diff-section.expanded {
+      flex: 1;
+    }
+
     /* --- Inline diff output (single panel) --- */
     .diff-inline {
       background: #fff;
@@ -162,10 +177,10 @@
       padding: 1.25rem;
       line-height: 1.8;
       min-height: 60px;
-      max-height: 30vh;
       overflow-y: auto;
       white-space: pre-wrap;
       word-wrap: break-word;
+      flex: 1;
     }
 
     /* --- Side-by-side diff output (two panels) --- */
@@ -174,7 +189,13 @@
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
       min-height: 60px;
-      max-height: 30vh;
+      flex: 1;
+    }
+
+    .diff-sidebyside > div {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     .diff-panel {
@@ -186,6 +207,8 @@
       overflow-y: auto;
       white-space: pre-wrap;
       word-wrap: break-word;
+      flex: 1;
+      min-height: 0;
     }
 
     .diff-panel-header {
@@ -255,6 +278,7 @@
       <button type="button" class="btn-primary" id="btn-compare">Compare</button>
       <button type="button" class="btn-secondary" id="btn-swap">Swap</button>
       <button type="button" class="btn-secondary" id="btn-clear">Clear</button>
+      <button type="button" class="btn-secondary" id="btn-toggle-inputs" style="display: none;">Edit inputs</button>
       <span class="options">
         <input type="checkbox" id="opt-strip-md">
         <label for="opt-strip-md">Strip Markdown</label>
@@ -266,7 +290,7 @@
       </span>
     </div>
 
-    <section aria-label="Diff results">
+    <section class="diff-section" id="diff-section" aria-label="Diff results">
       <div id="diff-output">
         <div class="diff-sidebyside">
           <div>
@@ -289,9 +313,12 @@
     const elOriginal = document.getElementById("text-original");
     const elChanged = document.getElementById("text-changed");
     const elOutput = document.getElementById("diff-output");
+    const elInputArea = document.querySelector(".input-area");
+    const elDiffSection = document.getElementById("diff-section");
     const btnCompare = document.getElementById("btn-compare");
     const btnSwap = document.getElementById("btn-swap");
     const btnClear = document.getElementById("btn-clear");
+    const btnToggleInputs = document.getElementById("btn-toggle-inputs");
     const optStripMd = document.getElementById("opt-strip-md");
     const optSideBySide = document.getElementById("opt-sidebyside");
 
@@ -423,6 +450,21 @@
     }
 
     // ---------------------------------------------------------------
+    // Hide / show input areas.
+    // ---------------------------------------------------------------
+    function hideInputs() {
+      elInputArea.classList.add("hidden");
+      elDiffSection.classList.add("expanded");
+      btnToggleInputs.style.display = "";
+    }
+
+    function showInputs() {
+      elInputArea.classList.remove("hidden");
+      elDiffSection.classList.remove("expanded");
+      btnToggleInputs.style.display = "none";
+    }
+
+    // ---------------------------------------------------------------
     // Event handlers.
     // ---------------------------------------------------------------
     btnCompare.addEventListener("click", function () {
@@ -455,6 +497,12 @@
       } else {
         renderInline(changes);
       }
+
+      hideInputs();
+    });
+
+    btnToggleInputs.addEventListener("click", function () {
+      showInputs();
     });
 
     btnSwap.addEventListener("click", function () {
@@ -467,6 +515,7 @@
       elOriginal.value = "";
       elChanged.value = "";
       elOutput.innerHTML = "";
+      showInputs();
     });
   </script>
 </body>

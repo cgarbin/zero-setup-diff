@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-02-06
+
+### Changed
+
+- Replaced custom LCS diff algorithm with [jsdiff](https://github.com/kpdecker/jsdiff)
+  (`Diff.diffWords`) via CDN for more accurate word-level diffs.
+- Default diff view is now **side by side** — original on the left (deletions in
+  red), changed on the right (additions in green).
+
+### Added
+
+- **Side-by-side view** — each panel shows coherent, readable text with only its
+  relevant highlights.
+- **View toggle** — switch between "Side by side" and "Inline" diff modes.
+
 ## [1.0.0] - 2026-02-06
 
 ### Added
@@ -12,6 +27,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 - Two side-by-side text areas for pasting original and changed text.
 - Word-level diff using an LCS (Longest Common Subsequence) algorithm.
 - Inline diff output with color-coded highlights (red for deletions, green for additions).
+- Strip Markdown option to remove formatting before comparing.
 - Compare, Swap, and Clear buttons.
 - Responsive layout that stacks vertically on narrow screens.
 - Accessible markup with labeled inputs and semantic HTML.

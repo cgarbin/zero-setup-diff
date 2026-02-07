@@ -114,8 +114,16 @@
       margin-left: 0.75rem;
     }
 
-    .options input[type="checkbox"] {
+    .options input[type="checkbox"],
+    .options input[type="radio"] {
       margin: 0;
+    }
+
+    .options-separator {
+      width: 1px;
+      height: 1.2em;
+      background: #ccc;
+      margin: 0 0.5rem;
     }
 
     button {
@@ -146,7 +154,8 @@
       background: #d0d0d0;
     }
 
-    .diff-output {
+    /* --- Inline diff output (single panel) --- */
+    .diff-inline {
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 6px;
@@ -159,13 +168,41 @@
       word-wrap: break-word;
     }
 
-    .diff-output:empty::before {
-      content: "Differences will appear here after you click Compare.";
+    /* --- Side-by-side diff output (two panels) --- */
+    .diff-sidebyside {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      min-height: 60px;
+      max-height: 30vh;
+    }
+
+    .diff-panel {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 1.25rem;
+      line-height: 1.8;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .diff-panel-header {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .diff-placeholder {
       color: #999;
       font-style: italic;
     }
 
-    .diff-output .identical-message {
+    .identical-message {
       color: #666;
       font-style: italic;
     }
@@ -188,6 +225,9 @@
 
     @media (max-width: 600px) {
       .input-area {
+        grid-template-columns: 1fr;
+      }
+      .diff-sidebyside {
         grid-template-columns: 1fr;
       }
     }
@@ -218,14 +258,31 @@
       <span class="options">
         <input type="checkbox" id="opt-strip-md">
         <label for="opt-strip-md">Strip Markdown</label>
+        <span class="options-separator"></span>
+        <input type="radio" name="view-mode" id="opt-sidebyside" value="sidebyside" checked>
+        <label for="opt-sidebyside">Side by side</label>
+        <input type="radio" name="view-mode" id="opt-inline" value="inline">
+        <label for="opt-inline">Inline</label>
       </span>
     </div>
 
     <section aria-label="Diff results">
-      <div class="diff-output" id="diff-output"></div>
+      <div id="diff-output">
+        <div class="diff-sidebyside">
+          <div>
+            <div class="diff-panel-header">Original</div>
+            <div class="diff-panel"><span class="diff-placeholder">Differences will appear here after you click Compare.</span></div>
+          </div>
+          <div>
+            <div class="diff-panel-header">Changed</div>
+            <div class="diff-panel"><span class="diff-placeholder">Differences will appear here after you click Compare.</span></div>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/diff@7/dist/diff.min.js"></script>
   <script>
     "use strict";
 
@@ -236,6 +293,7 @@
     const btnSwap = document.getElementById("btn-swap");
     const btnClear = document.getElementById("btn-clear");
     const optStripMd = document.getElementById("opt-strip-md");
+    const optSideBySide = document.getElementById("opt-sidebyside");
 
     // ---------------------------------------------------------------
     // Strip Markdown — removes common Markdown formatting so the
@@ -274,140 +332,133 @@
     }
 
     // ---------------------------------------------------------------
-    // Tokenizer — splits text into an array of words and whitespace.
-    // Each token is either a "word" (non-whitespace run) or a
-    // "space" (whitespace run). This preserves the original spacing
-    // so the diff output reads naturally.
+    // Render helpers for empty / identical states.
     // ---------------------------------------------------------------
-    function tokenize(text) {
-      const tokens = [];
-      const regex = /(\S+|\s+)/g;
-      let match;
-      while ((match = regex.exec(text)) !== null) {
-        tokens.push(match[0]);
-      }
-      return tokens;
-    }
-
-    function isWhitespace(token) {
-      return /^\s+$/.test(token);
-    }
-
-    // ---------------------------------------------------------------
-    // LCS — Longest Common Subsequence on word tokens (ignoring
-    // whitespace tokens for comparison purposes).
-    //
-    // Returns an array of diff operations:
-    //   { type: "keep",   value: "word" }
-    //   { type: "delete", value: "word" }
-    //   { type: "insert", value: "word" }
-    // Whitespace between words is folded into the output so the
-    // rendered diff reads as coherent text.
-    // ---------------------------------------------------------------
-    function diff(oldText, newText) {
-      const oldTokens = tokenize(oldText);
-      const newTokens = tokenize(newText);
-
-      // Extract only word tokens for LCS comparison.
-      const oldWords = oldTokens.filter((t) => !isWhitespace(t));
-      const newWords = newTokens.filter((t) => !isWhitespace(t));
-
-      const m = oldWords.length;
-      const n = newWords.length;
-
-      // Build LCS table.
-      const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
-      for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-          if (oldWords[i - 1] === newWords[j - 1]) {
-            dp[i][j] = dp[i - 1][j - 1] + 1;
-          } else {
-            dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-          }
-        }
-      }
-
-      // Backtrack to produce the diff operations.
-      const ops = [];
-      let i = m;
-      let j = n;
-      while (i > 0 || j > 0) {
-        if (i > 0 && j > 0 && oldWords[i - 1] === newWords[j - 1]) {
-          ops.push({ type: "keep", value: oldWords[i - 1] });
-          i--;
-          j--;
-        } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-          ops.push({ type: "insert", value: newWords[j - 1] });
-          j--;
-        } else {
-          ops.push({ type: "delete", value: oldWords[i - 1] });
-          i--;
-        }
-      }
-
-      ops.reverse();
-      return ops;
-    }
-
-    // ---------------------------------------------------------------
-    // Render diff operations into the output element.
-    // ---------------------------------------------------------------
-    function renderDiff(ops) {
+    function showMessage(text) {
       elOutput.innerHTML = "";
+      var container = document.createElement("div");
+      container.className = "diff-inline";
+      var span = document.createElement("span");
+      span.className = "identical-message";
+      span.textContent = text;
+      container.appendChild(span);
+      elOutput.appendChild(container);
+    }
 
-      if (ops.length === 0) {
-        const span = document.createElement("span");
-        span.className = "identical-message";
-        span.textContent = "Both texts are empty.";
-        elOutput.appendChild(span);
-        return;
-      }
+    // ---------------------------------------------------------------
+    // Inline diff — single panel with interleaved red/green spans.
+    // ---------------------------------------------------------------
+    function renderInline(changes) {
+      elOutput.innerHTML = "";
+      var container = document.createElement("div");
+      container.className = "diff-inline";
 
-      // Check if all operations are "keep" (texts are identical).
-      const allKeep = ops.every((op) => op.type === "keep");
-      if (allKeep) {
-        const span = document.createElement("span");
-        span.className = "identical-message";
-        span.textContent = "The texts are identical.";
-        elOutput.appendChild(span);
-        return;
-      }
-
-      ops.forEach((op, index) => {
-        // Insert a space between tokens (except before the first one).
-        if (index > 0) {
-          elOutput.appendChild(document.createTextNode(" "));
-        }
-
-        const span = document.createElement("span");
-        span.textContent = op.value;
-
-        if (op.type === "delete") {
+      changes.forEach(function (part) {
+        var span = document.createElement("span");
+        span.textContent = part.value;
+        if (part.removed) {
           span.className = "diff-deleted";
-        } else if (op.type === "insert") {
+        } else if (part.added) {
           span.className = "diff-added";
         }
-
-        elOutput.appendChild(span);
+        container.appendChild(span);
       });
+
+      elOutput.appendChild(container);
+    }
+
+    // ---------------------------------------------------------------
+    // Side-by-side diff — two panels, each showing coherent text
+    // with only the relevant highlights.
+    //   Left panel:  original text, deletions in red
+    //   Right panel: changed text, additions in green
+    // ---------------------------------------------------------------
+    function renderSideBySide(changes) {
+      elOutput.innerHTML = "";
+
+      var wrapper = document.createElement("div");
+      wrapper.className = "diff-sidebyside";
+
+      var leftCol = document.createElement("div");
+      var leftHeader = document.createElement("div");
+      leftHeader.className = "diff-panel-header";
+      leftHeader.textContent = "Original";
+      var leftPanel = document.createElement("div");
+      leftPanel.className = "diff-panel";
+      leftCol.appendChild(leftHeader);
+      leftCol.appendChild(leftPanel);
+
+      var rightCol = document.createElement("div");
+      var rightHeader = document.createElement("div");
+      rightHeader.className = "diff-panel-header";
+      rightHeader.textContent = "Changed";
+      var rightPanel = document.createElement("div");
+      rightPanel.className = "diff-panel";
+      rightCol.appendChild(rightHeader);
+      rightCol.appendChild(rightPanel);
+
+      changes.forEach(function (part) {
+        if (part.removed) {
+          // Only in the original (left panel).
+          var span = document.createElement("span");
+          span.className = "diff-deleted";
+          span.textContent = part.value;
+          leftPanel.appendChild(span);
+        } else if (part.added) {
+          // Only in the changed (right panel).
+          var span = document.createElement("span");
+          span.className = "diff-added";
+          span.textContent = part.value;
+          rightPanel.appendChild(span);
+        } else {
+          // Unchanged — appears in both panels.
+          leftPanel.appendChild(document.createTextNode(part.value));
+          rightPanel.appendChild(document.createTextNode(part.value));
+        }
+      });
+
+      wrapper.appendChild(leftCol);
+      wrapper.appendChild(rightCol);
+      elOutput.appendChild(wrapper);
     }
 
     // ---------------------------------------------------------------
     // Event handlers.
     // ---------------------------------------------------------------
     btnCompare.addEventListener("click", function () {
-      let oldText = elOriginal.value;
-      let newText = elChanged.value;
+      var oldText = elOriginal.value;
+      var newText = elChanged.value;
+
       if (optStripMd.checked) {
         oldText = stripMarkdown(oldText);
         newText = stripMarkdown(newText);
       }
-      const ops = diff(oldText, newText);
-      renderDiff(ops);
+
+      if (oldText === "" && newText === "") {
+        showMessage("Both texts are empty.");
+        return;
+      }
+
+      var changes = Diff.diffWords(oldText, newText);
+
+      var hasChanges = changes.some(function (part) {
+        return part.added || part.removed;
+      });
+
+      if (!hasChanges) {
+        showMessage("The texts are identical.");
+        return;
+      }
+
+      if (optSideBySide.checked) {
+        renderSideBySide(changes);
+      } else {
+        renderInline(changes);
+      }
     });
 
     btnSwap.addEventListener("click", function () {
-      const temp = elOriginal.value;
+      var temp = elOriginal.value;
       elOriginal.value = elChanged.value;
       elChanged.value = temp;
     });

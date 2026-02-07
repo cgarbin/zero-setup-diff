@@ -164,13 +164,10 @@
     }
 
     .diff-section {
+      flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
-    }
-
-    .diff-section.expanded {
-      flex: 1;
     }
 
     /* --- Inline diff output (single panel) --- */
@@ -449,13 +446,11 @@
     // ---------------------------------------------------------------
     function hideInputs() {
       elInputArea.classList.add("hidden");
-      elDiffSection.classList.add("expanded");
       btnToggleInputs.classList.remove("initially-hidden");
     }
 
     function showInputs() {
       elInputArea.classList.remove("hidden");
-      elDiffSection.classList.remove("expanded");
       btnToggleInputs.classList.add("initially-hidden");
     }
 

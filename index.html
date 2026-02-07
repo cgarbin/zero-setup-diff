@@ -235,6 +235,43 @@
     const btnCompare = document.getElementById("btn-compare");
     const btnSwap = document.getElementById("btn-swap");
     const btnClear = document.getElementById("btn-clear");
+    const optStripMd = document.getElementById("opt-strip-md");
+
+    // ---------------------------------------------------------------
+    // Strip Markdown — removes common Markdown formatting so the
+    // diff compares plain text content only.
+    // ---------------------------------------------------------------
+    function stripMarkdown(text) {
+      return text
+        // Fenced code blocks (``` ... ```)
+        .replace(/```[\s\S]*?```/g, function (m) {
+          return m.replace(/```\w*\n?/g, "").replace(/```/g, "");
+        })
+        // Inline code (`...`)
+        .replace(/`([^`]+)`/g, "$1")
+        // Images ![alt](url)
+        .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+        // Links [text](url)
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        // Headings (# ... ######)
+        .replace(/^#{1,6}\s+/gm, "")
+        // Bold **text** or __text__
+        .replace(/(\*\*|__)(.*?)\1/g, "$2")
+        // Italic *text* or _text_ (but not mid-word underscores)
+        .replace(/(\*|_)(.*?)\1/g, "$2")
+        // Strikethrough ~~text~~
+        .replace(/~~(.*?)~~/g, "$1")
+        // Blockquotes
+        .replace(/^>\s+/gm, "")
+        // Unordered list markers (-, *, +)
+        .replace(/^[\t ]*[-*+]\s+/gm, "")
+        // Ordered list markers (1., 2., etc.)
+        .replace(/^[\t ]*\d+\.\s+/gm, "")
+        // Horizontal rules
+        .replace(/^[-*_]{3,}\s*$/gm, "")
+        // HTML tags
+        .replace(/<[^>]+>/g, "");
+    }
 
     // ---------------------------------------------------------------
     // Tokenizer — splits text into an array of words and whitespace.
@@ -359,8 +396,12 @@
     // Event handlers.
     // ---------------------------------------------------------------
     btnCompare.addEventListener("click", function () {
-      const oldText = elOriginal.value;
-      const newText = elChanged.value;
+      let oldText = elOriginal.value;
+      let newText = elChanged.value;
+      if (optStripMd.checked) {
+        oldText = stripMarkdown(oldText);
+        newText = stripMarkdown(newText);
+      }
       const ops = diff(oldText, newText);
       renderDiff(ops);
     });

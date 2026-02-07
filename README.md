@@ -26,6 +26,8 @@ Deletions appear in red with a strikethrough. Additions appear in green and bold
 
 The app uses [jsdiff](https://github.com/kpdecker/jsdiff) (`Diff.diffWords`) to compute word-level diffs. The library is loaded via CDN on first use. Results are rendered as either a side-by-side or inline view with colored highlights.
 
+Developed with Claude Code.
+
 ## License
 
 [MIT](LICENSE)

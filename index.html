@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Compare two pieces of text side by side and see word-level differences highlighted. No install, no server — just open in a browser.">
   <title>Side-by-Side Text Diff</title>
   <style>
     *,
@@ -158,8 +159,11 @@
       background: #d0d0d0;
     }
 
+    .btn-secondary.initially-hidden {
+      display: none;
+    }
+
     .diff-section {
-      flex: 0;
       min-height: 0;
       display: flex;
       flex-direction: column;
@@ -179,7 +183,7 @@
       min-height: 60px;
       overflow-y: auto;
       white-space: pre-wrap;
-      word-wrap: break-word;
+      overflow-wrap: break-word;
       flex: 1;
     }
 
@@ -206,7 +210,7 @@
       line-height: 1.8;
       overflow-y: auto;
       white-space: pre-wrap;
-      word-wrap: break-word;
+      overflow-wrap: break-word;
       flex: 1;
       min-height: 0;
     }
@@ -278,7 +282,7 @@
       <button type="button" class="btn-primary" id="btn-compare">Compare</button>
       <button type="button" class="btn-secondary" id="btn-swap">Swap</button>
       <button type="button" class="btn-secondary" id="btn-clear">Clear</button>
-      <button type="button" class="btn-secondary" id="btn-toggle-inputs" style="display: none;">Edit inputs</button>
+      <button type="button" class="btn-secondary initially-hidden" id="btn-toggle-inputs">Edit inputs</button>
       <span class="options">
         <input type="checkbox" id="opt-strip-md">
         <label for="opt-strip-md">Strip Markdown</label>
@@ -291,16 +295,14 @@
     </div>
 
     <section class="diff-section" id="diff-section" aria-label="Diff results">
-      <div id="diff-output">
-        <div class="diff-sidebyside">
-          <div>
-            <div class="diff-panel-header">Original</div>
-            <div class="diff-panel"><span class="diff-placeholder">Differences will appear here after you click Compare.</span></div>
-          </div>
-          <div>
-            <div class="diff-panel-header">Changed</div>
-            <div class="diff-panel"><span class="diff-placeholder">Differences will appear here after you click Compare.</span></div>
-          </div>
+      <div class="diff-sidebyside">
+        <div>
+          <div class="diff-panel-header">Original</div>
+          <div class="diff-panel"><span class="diff-placeholder">Differences will appear here after you click Compare.</span></div>
+        </div>
+        <div>
+          <div class="diff-panel-header">Changed</div>
+          <div class="diff-panel"><span class="diff-placeholder">Differences will appear here after you click Compare.</span></div>
         </div>
       </div>
     </section>
@@ -312,15 +314,15 @@
 
     const elOriginal = document.getElementById("text-original");
     const elChanged = document.getElementById("text-changed");
-    const elOutput = document.getElementById("diff-output");
-    const elInputArea = document.querySelector(".input-area");
     const elDiffSection = document.getElementById("diff-section");
+    const elInputArea = document.querySelector(".input-area");
     const btnCompare = document.getElementById("btn-compare");
     const btnSwap = document.getElementById("btn-swap");
     const btnClear = document.getElementById("btn-clear");
     const btnToggleInputs = document.getElementById("btn-toggle-inputs");
     const optStripMd = document.getElementById("opt-strip-md");
     const optSideBySide = document.getElementById("opt-sidebyside");
+    const optInline = document.getElementById("opt-inline");
 
     // ---------------------------------------------------------------
     // Strip Markdown — removes common Markdown formatting so the
@@ -342,7 +344,7 @@
         .replace(/^#{1,6}\s+/gm, "")
         // Bold **text** or __text__
         .replace(/(\*\*|__)(.*?)\1/g, "$2")
-        // Italic *text* or _text_ (but not mid-word underscores)
+        // Italic *text* or _text_
         .replace(/(\*|_)(.*?)\1/g, "$2")
         // Strikethrough ~~text~~
         .replace(/~~(.*?)~~/g, "$1")
@@ -362,26 +364,24 @@
     // Render helpers for empty / identical states.
     // ---------------------------------------------------------------
     function showMessage(text) {
-      elOutput.innerHTML = "";
-      var container = document.createElement("div");
+      const container = document.createElement("div");
       container.className = "diff-inline";
-      var span = document.createElement("span");
+      const span = document.createElement("span");
       span.className = "identical-message";
       span.textContent = text;
       container.appendChild(span);
-      elOutput.appendChild(container);
+      elDiffSection.replaceChildren(container);
     }
 
     // ---------------------------------------------------------------
     // Inline diff — single panel with interleaved red/green spans.
     // ---------------------------------------------------------------
     function renderInline(changes) {
-      elOutput.innerHTML = "";
-      var container = document.createElement("div");
+      const container = document.createElement("div");
       container.className = "diff-inline";
 
-      changes.forEach(function (part) {
-        var span = document.createElement("span");
+      for (const part of changes) {
+        const span = document.createElement("span");
         span.textContent = part.value;
         if (part.removed) {
           span.className = "diff-deleted";
@@ -389,9 +389,9 @@
           span.className = "diff-added";
         }
         container.appendChild(span);
-      });
+      }
 
-      elOutput.appendChild(container);
+      elDiffSection.replaceChildren(container);
     }
 
     // ---------------------------------------------------------------
@@ -401,52 +401,47 @@
     //   Right panel: changed text, additions in green
     // ---------------------------------------------------------------
     function renderSideBySide(changes) {
-      elOutput.innerHTML = "";
-
-      var wrapper = document.createElement("div");
+      const wrapper = document.createElement("div");
       wrapper.className = "diff-sidebyside";
 
-      var leftCol = document.createElement("div");
-      var leftHeader = document.createElement("div");
+      const leftCol = document.createElement("div");
+      const leftHeader = document.createElement("div");
       leftHeader.className = "diff-panel-header";
       leftHeader.textContent = "Original";
-      var leftPanel = document.createElement("div");
+      const leftPanel = document.createElement("div");
       leftPanel.className = "diff-panel";
       leftCol.appendChild(leftHeader);
       leftCol.appendChild(leftPanel);
 
-      var rightCol = document.createElement("div");
-      var rightHeader = document.createElement("div");
+      const rightCol = document.createElement("div");
+      const rightHeader = document.createElement("div");
       rightHeader.className = "diff-panel-header";
       rightHeader.textContent = "Changed";
-      var rightPanel = document.createElement("div");
+      const rightPanel = document.createElement("div");
       rightPanel.className = "diff-panel";
       rightCol.appendChild(rightHeader);
       rightCol.appendChild(rightPanel);
 
-      changes.forEach(function (part) {
+      for (const part of changes) {
         if (part.removed) {
-          // Only in the original (left panel).
-          var span = document.createElement("span");
+          const span = document.createElement("span");
           span.className = "diff-deleted";
           span.textContent = part.value;
           leftPanel.appendChild(span);
         } else if (part.added) {
-          // Only in the changed (right panel).
-          var span = document.createElement("span");
+          const span = document.createElement("span");
           span.className = "diff-added";
           span.textContent = part.value;
           rightPanel.appendChild(span);
         } else {
-          // Unchanged — appears in both panels.
           leftPanel.appendChild(document.createTextNode(part.value));
           rightPanel.appendChild(document.createTextNode(part.value));
         }
-      });
+      }
 
       wrapper.appendChild(leftCol);
       wrapper.appendChild(rightCol);
-      elOutput.appendChild(wrapper);
+      elDiffSection.replaceChildren(wrapper);
     }
 
     // ---------------------------------------------------------------
@@ -455,24 +450,24 @@
     function hideInputs() {
       elInputArea.classList.add("hidden");
       elDiffSection.classList.add("expanded");
-      btnToggleInputs.style.display = "";
+      btnToggleInputs.classList.remove("initially-hidden");
     }
 
     function showInputs() {
       elInputArea.classList.remove("hidden");
       elDiffSection.classList.remove("expanded");
-      btnToggleInputs.style.display = "none";
+      btnToggleInputs.classList.add("initially-hidden");
     }
 
     // ---------------------------------------------------------------
     // Run the comparison. Called by Compare button and automatically
     // when options change after a comparison has been shown.
     // ---------------------------------------------------------------
-    var hasCompared = false;
+    let hasCompared = false;
 
     function runCompare() {
-      var oldText = elOriginal.value;
-      var newText = elChanged.value;
+      let oldText = elOriginal.value;
+      let newText = elChanged.value;
 
       if (optStripMd.checked) {
         oldText = stripMarkdown(oldText);
@@ -484,9 +479,9 @@
         return;
       }
 
-      var changes = Diff.diffWords(oldText, newText);
+      const changes = Diff.diffWords(oldText, newText);
 
-      var hasChanges = changes.some(function (part) {
+      const hasChanges = changes.some(function (part) {
         return part.added || part.removed;
       });
 
@@ -524,7 +519,7 @@
     });
 
     btnSwap.addEventListener("click", function () {
-      var temp = elOriginal.value;
+      const temp = elOriginal.value;
       elOriginal.value = elChanged.value;
       elChanged.value = temp;
       recompareIfNeeded();
@@ -532,12 +527,12 @@
 
     optStripMd.addEventListener("change", recompareIfNeeded);
     optSideBySide.addEventListener("change", recompareIfNeeded);
-    document.getElementById("opt-inline").addEventListener("change", recompareIfNeeded);
+    optInline.addEventListener("change", recompareIfNeeded);
 
     btnClear.addEventListener("click", function () {
       elOriginal.value = "";
       elChanged.value = "";
-      elOutput.innerHTML = "";
+      elDiffSection.replaceChildren();
       hasCompared = false;
       showInputs();
     });

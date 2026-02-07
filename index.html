@@ -465,9 +465,12 @@
     }
 
     // ---------------------------------------------------------------
-    // Event handlers.
+    // Run the comparison. Called by Compare button and automatically
+    // when options change after a comparison has been shown.
     // ---------------------------------------------------------------
-    btnCompare.addEventListener("click", function () {
+    var hasCompared = false;
+
+    function runCompare() {
       var oldText = elOriginal.value;
       var newText = elChanged.value;
 
@@ -498,6 +501,21 @@
         renderInline(changes);
       }
 
+      hasCompared = true;
+    }
+
+    // Re-run the comparison if one has already been shown.
+    function recompareIfNeeded() {
+      if (hasCompared) {
+        runCompare();
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // Event handlers.
+    // ---------------------------------------------------------------
+    btnCompare.addEventListener("click", function () {
+      runCompare();
       hideInputs();
     });
 
@@ -509,12 +527,18 @@
       var temp = elOriginal.value;
       elOriginal.value = elChanged.value;
       elChanged.value = temp;
+      recompareIfNeeded();
     });
+
+    optStripMd.addEventListener("change", recompareIfNeeded);
+    optSideBySide.addEventListener("change", recompareIfNeeded);
+    document.getElementById("opt-inline").addEventListener("change", recompareIfNeeded);
 
     btnClear.addEventListener("click", function () {
       elOriginal.value = "";
       elChanged.value = "";
       elOutput.innerHTML = "";
+      hasCompared = false;
       showInputs();
     });
   </script>

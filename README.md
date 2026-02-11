@@ -21,6 +21,8 @@ Deletions appear in red with a strikethrough. Additions appear in green and bold
 - **Responsive** — works on desktop and mobile; panels stack vertically on narrow screens.
 - **Accessible** — semantic HTML, labeled inputs, visual cues beyond color alone.
 - **Swap & Clear buttons** — quickly reverse the comparison or start over.
+- **Auto-recompare** — changing options or swapping texts instantly updates the diff.
+- **Collapsible inputs** — inputs hide after comparing to maximize diff space; click "Edit inputs" to restore them.
 
 ## How It Works
 

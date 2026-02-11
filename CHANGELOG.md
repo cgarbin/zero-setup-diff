@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-02-11
+
+### Added
+
+- **Auto-recompare** — changing options (Strip Markdown, view mode) or swapping
+  texts automatically re-runs the comparison.
+- **Edit inputs toggle** — inputs hide after comparing to maximize diff output
+  space; click "Edit inputs" to restore them.
+
+### Fixed
+
+- Layout overlap when showing inputs after a comparison.
+
+### Changed
+
+- Pinned jsdiff CDN to exact version (7.0.0) with SRI integrity hash.
+- Added `<noscript>` fallback for users with JavaScript disabled.
+- Added favicon to suppress browser 404 requests.
+- Added offline fallback message when jsdiff CDN is unreachable.
+- Refactored `stripMarkdown` to use named regex constants for readability.
+- `showMessage` now respects the active view mode (side-by-side or inline).
+- Replaced mutable `hasCompared` flag with DOM-derived state.
+- Used `const` instead of `let` where values are not reassigned.
+
 ## [1.1.0] - 2026-02-06
 
 ### Changed

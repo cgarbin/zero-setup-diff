@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Compare two pieces of text side by side and see word-level differences highlighted. No install, no server — just open in a browser.">
+  <link rel="icon" href="data:,">
   <title>Side-by-Side Text Diff</title>
   <style>
     *,
@@ -305,9 +306,21 @@
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/diff@7/dist/diff.min.js"></script>
+  <noscript><p style="text-align:center;margin:2rem;color:#666;">This tool requires JavaScript to run.</p></noscript>
+
+  <!-- SRI hash: curl -s URL | openssl dgst -sha384 -binary | openssl base64 -A -->
+  <script src="https://cdn.jsdelivr.net/npm/diff@7.0.0/dist/diff.min.js"
+          integrity="sha384-UeyWE2TKK+s95khAzg8xeTD88VbztEqt1mbxzkzwAPM32TPJSj8Lyg7E7tVXAyRL"
+          crossorigin="anonymous"></script>
   <script>
     "use strict";
+
+    if (typeof Diff === "undefined") {
+      document.body.innerHTML =
+        '<p style="text-align:center;margin:2rem;color:#c00;">' +
+        "Could not load the diff library. Check your internet connection and reload.</p>";
+      throw new Error("jsdiff library not loaded");
+    }
 
     const elOriginal = document.getElementById("text-original");
     const elChanged = document.getElementById("text-changed");
@@ -325,49 +338,80 @@
     // Strip Markdown — removes common Markdown formatting so the
     // diff compares plain text content only.
     // ---------------------------------------------------------------
+    const MD_FENCED_CODE  = /```[\s\S]*?```/g;
+    const MD_FENCE_MARKER = /```\w*\n?/g;
+    const MD_INLINE_CODE  = /`([^`]+)`/g;
+    const MD_IMAGE        = /!\[([^\]]*)\]\([^)]+\)/g;
+    const MD_LINK         = /\[([^\]]+)\]\([^)]+\)/g;
+    const MD_HEADING      = /^#{1,6}\s+/gm;
+    const MD_BOLD         = /(\*\*|__)(.*?)\1/g;
+    const MD_ITALIC       = /(\*|_)(.*?)\1/g;
+    const MD_STRIKETHROUGH = /~~(.*?)~~/g;
+    const MD_BLOCKQUOTE   = /^>\s+/gm;
+    const MD_UL_MARKER    = /^[\t ]*[-*+]\s+/gm;
+    const MD_OL_MARKER    = /^[\t ]*\d+\.\s+/gm;
+    const MD_HORIZ_RULE   = /^[-*_]{3,}\s*$/gm;
+    const MD_HTML_TAG     = /<[^>]+>/g;
+
     function stripMarkdown(text) {
       return text
-        // Fenced code blocks (``` ... ```)
-        .replace(/```[\s\S]*?```/g, function (m) {
-          return m.replace(/```\w*\n?/g, "").replace(/```/g, "");
+        .replace(MD_FENCED_CODE, function (m) {
+          return m.replace(MD_FENCE_MARKER, "").replace(/```/g, "");
         })
-        // Inline code (`...`)
-        .replace(/`([^`]+)`/g, "$1")
-        // Images ![alt](url)
-        .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
-        // Links [text](url)
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-        // Headings (# ... ######)
-        .replace(/^#{1,6}\s+/gm, "")
-        // Bold **text** or __text__
-        .replace(/(\*\*|__)(.*?)\1/g, "$2")
-        // Italic *text* or _text_
-        .replace(/(\*|_)(.*?)\1/g, "$2")
-        // Strikethrough ~~text~~
-        .replace(/~~(.*?)~~/g, "$1")
-        // Blockquotes
-        .replace(/^>\s+/gm, "")
-        // Unordered list markers (-, *, +)
-        .replace(/^[\t ]*[-*+]\s+/gm, "")
-        // Ordered list markers (1., 2., etc.)
-        .replace(/^[\t ]*\d+\.\s+/gm, "")
-        // Horizontal rules
-        .replace(/^[-*_]{3,}\s*$/gm, "")
-        // HTML tags
-        .replace(/<[^>]+>/g, "");
+        .replace(MD_INLINE_CODE, "$1")
+        .replace(MD_IMAGE, "$1")
+        .replace(MD_LINK, "$1")
+        .replace(MD_HEADING, "")
+        .replace(MD_BOLD, "$2")
+        .replace(MD_ITALIC, "$2")
+        .replace(MD_STRIKETHROUGH, "$1")
+        .replace(MD_BLOCKQUOTE, "")
+        .replace(MD_UL_MARKER, "")
+        .replace(MD_OL_MARKER, "")
+        .replace(MD_HORIZ_RULE, "")
+        .replace(MD_HTML_TAG, "");
     }
 
     // ---------------------------------------------------------------
     // Render helpers for empty / identical states.
     // ---------------------------------------------------------------
     function showMessage(text) {
-      const container = document.createElement("div");
-      container.className = "diff-inline";
       const span = document.createElement("span");
       span.className = "identical-message";
       span.textContent = text;
-      container.appendChild(span);
-      elDiffSection.replaceChildren(container);
+
+      if (optSideBySide.checked) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "diff-sidebyside";
+
+        const leftCol = document.createElement("div");
+        const leftHeader = document.createElement("div");
+        leftHeader.className = "diff-panel-header";
+        leftHeader.textContent = "Original";
+        const leftPanel = document.createElement("div");
+        leftPanel.className = "diff-panel";
+        leftPanel.appendChild(span);
+        leftCol.appendChild(leftHeader);
+        leftCol.appendChild(leftPanel);
+
+        const rightCol = document.createElement("div");
+        const rightHeader = document.createElement("div");
+        rightHeader.className = "diff-panel-header";
+        rightHeader.textContent = "Changed";
+        const rightPanel = document.createElement("div");
+        rightPanel.className = "diff-panel";
+        rightCol.appendChild(rightHeader);
+        rightCol.appendChild(rightPanel);
+
+        wrapper.appendChild(leftCol);
+        wrapper.appendChild(rightCol);
+        elDiffSection.replaceChildren(wrapper);
+      } else {
+        const container = document.createElement("div");
+        container.className = "diff-inline";
+        container.appendChild(span);
+        elDiffSection.replaceChildren(container);
+      }
     }
 
     // ---------------------------------------------------------------
@@ -458,16 +502,9 @@
     // Run the comparison. Called by Compare button and automatically
     // when options change after a comparison has been shown.
     // ---------------------------------------------------------------
-    let hasCompared = false;
-
     function runCompare() {
-      let oldText = elOriginal.value;
-      let newText = elChanged.value;
-
-      if (optStripMd.checked) {
-        oldText = stripMarkdown(oldText);
-        newText = stripMarkdown(newText);
-      }
+      const oldText = optStripMd.checked ? stripMarkdown(elOriginal.value) : elOriginal.value;
+      const newText = optStripMd.checked ? stripMarkdown(elChanged.value) : elChanged.value;
 
       if (oldText === "" && newText === "") {
         showMessage("Both texts are empty.");
@@ -490,13 +527,11 @@
       } else {
         renderInline(changes);
       }
-
-      hasCompared = true;
     }
 
     // Re-run the comparison if one has already been shown.
     function recompareIfNeeded() {
-      if (hasCompared) {
+      if (elDiffSection.children.length > 0) {
         runCompare();
       }
     }
@@ -528,7 +563,6 @@
       elOriginal.value = "";
       elChanged.value = "";
       elDiffSection.replaceChildren();
-      hasCompared = false;
       showInputs();
     });
   </script>

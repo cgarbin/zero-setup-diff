@@ -1,4 +1,4 @@
-# Side-by-Side Visual Text Diff
+# Zero-Setup Diff
 
 A dead-simple, zero-install tool to compare two pieces of text and see the differences highlighted word by word. No servers, no build steps — just a single HTML file you open in your browser.
 

@@ -4,11 +4,13 @@ A dead-simple, zero-install tool to compare two pieces of text and see the diffe
 
 ## How to Use
 
-1. [Download `index.html`](index.html) (or clone this repo).
-2. Open it in any modern browser (double-click the file).
-3. Paste the **original** text in the left box.
-4. Paste the **changed** text in the right box.
-5. Click **Compare**.
+**Use it now at <https://cgarbin.github.io/zero-setup-diff/>** — no download needed.
+
+Or [download `index.html`](index.html) and open it locally in any browser.
+
+1. Paste the **original** text in the left box.
+2. Paste the **changed** text in the right box.
+3. Click **Compare**.
 
 Deletions appear in red with a strikethrough. Additions appear in green and bold.
 
